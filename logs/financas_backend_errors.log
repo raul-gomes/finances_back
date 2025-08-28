@@ -1,0 +1,194 @@
+2025-08-28 16:11:37 | ERROR    | app.routes.transacoes_routes:criar_transacao:164 | {'http_method': 'POST', 'endpoint': '/transacoes', 'error': "1 validation error for CategoriaCreate\nsubcategorias\n  Input should be a valid list [type=list_type, input_value='Marcenaria', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/list_type"} | Erro interno ao criar transação
+Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+               │     │   └ 4
+               │     └ 7
+               └ <function _main at 0x7ea4669dd940>
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 135, in _main
+    return self._bootstrap(parent_sentinel)
+           │    │          └ 4
+           │    └ <function BaseProcess._bootstrap at 0x7ea466abbc40>
+           └ <SpawnProcess name='SpawnProcess-3' parent=59296 started>
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+    │    └ <function BaseProcess.run at 0x7ea466abb1a0>
+    └ <SpawnProcess name='SpawnProcess-3' parent=59296 started>
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    │    │        │    │        │    └ {'config': <uvicorn.config.Config object at 0x7ea465e901d0>, 'target': <bound method Server.run of <uvicorn.server.Server obj...
+    │    │        │    │        └ <SpawnProcess name='SpawnProcess-3' parent=59296 started>
+    │    │        │    └ ()
+    │    │        └ <SpawnProcess name='SpawnProcess-3' parent=59296 started>
+    │    └ <function subprocess_started at 0x7ea465efdee0>
+    └ <SpawnProcess name='SpawnProcess-3' parent=59296 started>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    │              └ [<socket.socket fd=3, family=2, type=1, proto=0, laddr=('0.0.0.0', 8000)>]
+    └ <bound method Server.run of <uvicorn.server.Server object at 0x7ea465ced130>>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/uvicorn/server.py", line 67, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           │       │   │    │             └ [<socket.socket fd=3, family=2, type=1, proto=0, laddr=('0.0.0.0', 8000)>]
+           │       │   │    └ <function Server.serve at 0x7ea465efd300>
+           │       │   └ <uvicorn.server.Server object at 0x7ea465ced130>
+           │       └ <function run at 0x7ea46652aca0>
+           └ <module 'asyncio' from '/usr/lib/python3.12/asyncio/__init__.py'>
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object Server.serve at 0x7ea466a54120>
+           │      └ <function Runner.run at 0x7ea4665863e0>
+           └ <asyncio.runners.Runner object at 0x7ea465eb34a0>
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<Server.serve() running at /home/record/repos/financas_backend/.venv/lib/python3.12/site-pac...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x7ea466584040>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x7ea465eb34a0>
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x7ea466583f60>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x7ea466585da0>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x7ea4667ee2a0>
+    └ <Handle Task.task_wakeup(<Future finished result=None>)>
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(<Future finished result=None>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(<Future finished result=None>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(<Future finished result=None>)>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+                   └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x7ea464f5cc50>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+                 │    │   │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+                 │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+                 │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                 │    └ <fastapi.applications.FastAPI object at 0x7ea465d781d0>
+                 └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x7ea464f5cc50>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+                           │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+                           │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+                           └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+          │    │                │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │                │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │                └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x7ea4649dad80>
+          └ <fastapi.applications.FastAPI object at 0x7ea465d781d0>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x7ea465cf68e0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.cors.CORSMiddleware object at 0x7ea4649dabd0>
+          └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x7ea4649dad80>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+          │    │               │      │        │                     └ Headers({'host': 'localhost:8000', 'connection': 'keep-alive', 'content-length': '316', 'sec-ch-ua-platform': '"Windows"', 'u...
+          │    │               │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x7ea465cf68e0>
+          │    │               │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │               └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <function CORSMiddleware.simple_response at 0x7ea464f4db20>
+          └ <starlette.middleware.cors.CORSMiddleware object at 0x7ea4649dabd0>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+          │    │   │      │        └ functools.partial(<bound method CORSMiddleware.send of <starlette.middleware.cors.CORSMiddleware object at 0x7ea4649dabd0>>, ...
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.exceptions.ExceptionMiddleware object at 0x7ea4649dab10>
+          └ <starlette.middleware.cors.CORSMiddleware object at 0x7ea4649dabd0>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+          │                            │    │    │     │      │        └ functools.partial(<bound method CORSMiddleware.send of <starlette.middleware.cors.CORSMiddleware object at 0x7ea4649dabd0>>, ...
+          │                            │    │    │     │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │                            │    │    │     └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │                            │    │    └ <starlette.requests.Request object at 0x7ea4649ff350>
+          │                            │    └ <fastapi.routing.APIRouter object at 0x7ea464973e30>
+          │                            └ <starlette.middleware.exceptions.ExceptionMiddleware object at 0x7ea4649dab10>
+          └ <function wrap_app_handling_exceptions at 0x7ea4650ac900>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+          │   │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647496c0>
+          │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          └ <fastapi.routing.APIRouter object at 0x7ea464973e30>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+          │    │                │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647496c0>
+          │    │                │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │                └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <bound method Router.app of <fastapi.routing.APIRouter object at 0x7ea464973e30>>
+          └ <fastapi.routing.APIRouter object at 0x7ea464973e30>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+          │     │      │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647496c0>
+          │     │      │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │     │      └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │     └ <function Route.handle at 0x7ea4650ade40>
+          └ APIRoute(path='/transacoes/', name='criar_transacao', methods=['POST'])
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647496c0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <function request_response.<locals>.app at 0x7ea4649a6840>
+          └ APIRoute(path='/transacoes/', name='criar_transacao', methods=['POST'])
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 78, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+          │                            │    │        │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647496c0>
+          │                            │    │        │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │                            │    │        └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │                            │    └ <starlette.requests.Request object at 0x7ea4649ffa10>
+          │                            └ <function request_response.<locals>.app.<locals>.app at 0x7ea464749760>
+          └ <function wrap_app_handling_exceptions at 0x7ea4650ac900>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+          │   │      │        └ <function wrap_app_handling_exceptions.<locals>.wrapped_app.<locals>.sender at 0x7ea4647498a0>
+          │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x7ea4647b4140>>
+          │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.3'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          └ <function request_response.<locals>.app.<locals>.app at 0x7ea464749760>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 75, in app
+    response = await f(request)
+                     │ └ <starlette.requests.Request object at 0x7ea4649ffa10>
+                     └ <function get_request_handler.<locals>.app at 0x7ea4649a6700>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 302, in app
+    raw_response = await run_endpoint_function(
+                         └ <function run_endpoint_function at 0x7ea4650ac180>
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 213, in run_endpoint_function
+    return await dependant.call(**values)
+                 │         │      └ {'transacoes_col': AsyncIOMotorCollection(Collection(Database(MongoClient(host=['localhost:27017'], document_class=dict, tz_a...
+                 │         └ <function criar_transacao at 0x7ea46494bb00>
+                 └ Dependant(path_params=[], query_params=[], header_params=[], cookie_params=[], body_params=[ModelField(field_info=Body(Pydant...
+
+> File "/home/record/repos/financas_backend/app/routes/transacoes_routes.py", line 128, in criar_transacao
+    nova_cat = CategoriaCreate(
+               └ <class 'app.models.categorias_model.CategoriaCreate'>
+
+  File "/home/record/repos/financas_backend/.venv/lib/python3.12/site-packages/pydantic/main.py", line 253, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     │    │                      │               │                   └ CategoriaCreate()
+                     │    │                      │               └ {'categoria_nome': 'CursosDIY', 'limite': 0.0, 'subcategorias': 'Marcenaria'}
+                     │    │                      └ <method 'validate_python' of 'pydantic_core._pydantic_core.SchemaValidator' objects>
+                     │    └ SchemaValidator(title="CategoriaCreate", validator=Model(
+                     │          ModelValidator {
+                     │              revalidate: Never,
+                     │              validator: ...
+                     └ CategoriaCreate()
+
+pydantic_core._pydantic_core.ValidationError: 1 validation error for CategoriaCreate
+subcategorias
+  Input should be a valid list [type=list_type, input_value='Marcenaria', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
