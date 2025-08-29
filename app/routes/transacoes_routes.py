@@ -1,8 +1,10 @@
 # app/routes/transacoes.py
 
+from decimal import ROUND_DOWN, Decimal
 from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List
+from typing import List, Union
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from bson import ObjectId
 
 from app.database import get_database
@@ -26,6 +28,21 @@ async def get_categorias_collection():
     '''Dependency para obter a collection de categorias.'''
     return get_database().categorias
 
+def distribuir_valor(valor: Decimal, total: int) -> List[Decimal]:
+    """
+    Divide ‘valor’ em ‘total’ parcelas, distribuindo centavos extras
+    nas primeiras parcelas para evitar dízima periódica.
+    """
+    base = (valor / total).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+    total_base = base * total
+    resto = (valor - total_base).quantize(Decimal("0.01"))
+    centavos_resto = int((resto * 100).to_integral_value())
+
+    parcelas: List[Decimal] = []
+    for n in range(1, total + 1):
+        extra = Decimal("0.01") if n <= centavos_resto else Decimal("0.00")
+        parcelas.append(base + extra)
+    return parcelas
 
 @router.get(
     '/',
@@ -96,32 +113,23 @@ async def buscar_transacao_por_id(
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Erro interno do servidor')
 
 @router.post(
-    '/',
-    response_model=TransacaoResponse,
+    "/",
+    response_model=Union[TransacaoResponse, List[TransacaoResponse]],
     status_code=status.HTTP_201_CREATED,
-    summary='Cadastrar nova transação',
-    description='Cria uma nova transação financeira, auto-criando categoria/subcategoria se necessário.'
+    summary="Cadastrar nova transação",
+    description="Cria transação(s), auto-criando categoria/subcategoria se necessário, e parcelando no crédito."
 )
 async def criar_transacao(
     transacao: Transacao,
-    transacoes_col=Depends(get_transacoes_collection),
-    categorias_col=Depends(get_categorias_collection)
-) -> TransacaoResponse:
-    '''
-    Cadastra uma nova transação financeira.
-    
-    - **transacao**: dados da transação no corpo da requisição.
-    - **transacoes_col**: coleção de transações via Depends.
-    - **categorias_col**: coleção de categorias via Depends.
-    - Se a categoria ou subcategoria não existir, cria registro em categorias.
-    - Retorna TransacaoResponse com timestamps.
-    '''
+    transacoes_col=Depends(lambda: get_database().transacoes),
+    categorias_col=Depends(lambda: get_database().categorias)
+) -> Union[TransacaoResponse, List[TransacaoResponse]]:
     api_logger = log_api_request('POST', '/transacoes')
     try:
         api_logger.info('Recebendo dados de nova transação', data=transacao.model_dump())
         now = datetime.utcnow()
 
-        # Garantir categoria
+        # 1) Garantir categoria/subcategoria
         cat = await categorias_col.find_one({'categoria_nome': transacao.categoria})
         if not cat:
             api_logger.info('Categoria não encontrada, criando', categoria=transacao.categoria)
@@ -130,7 +138,6 @@ async def criar_transacao(
                 limite=0.0,
                 subcategorias=[transacao.subcategoria]
             )
-            # Insere no banco usando o dict validado pelo Pydantic
             await categorias_col.insert_one(nova_cat.model_dump())
         else:
             if transacao.subcategoria not in cat.get('subcategorias', []):
@@ -141,30 +148,70 @@ async def criar_transacao(
                     {'_id': cat['_id']},
                     {'$addToSet': {'subcategorias': transacao.subcategoria}}
                 )
-        
-        tx = transacao.model_dump()
-        tx.update({
-            'data_transacao': now,
-            'data_atualizacao': now
-        })
 
-        result = await transacoes_col.insert_one(tx)
-        api_logger.debug('Resultado insert_one', acknowledged=result.acknowledged,
-                         inserted_id=str(result.inserted_id))
+        # 2) Preparar valores e datas
+        valor_dec = Decimal(str(transacao.valor))
+        total_p = transacao.total_parcelas or 1
+        if transacao.forma_pagamento == "credito" and total_p > 1:
+            valores = distribuir_valor(valor_dec, total_p)
+            e_parcelado = True
+        else:
+            valores = [valor_dec]
+            total_p = 1
+            e_parcelado = False
 
-        if not result.acknowledged:
-            api_logger.error('Falha ao inserir transação')
-            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Falha ao inserir')
+        docs = []
+        data0 = transacao.data_transacao
+        for n, parc_val in enumerate(valores, start=1):
+            dt = (data0 if isinstance(data0, datetime)
+                  else datetime.fromisoformat(data0)) + relativedelta(months=n-1)
+            doc = {
+                "tipo": transacao.tipo,
+                "valor": float(parc_val),
+                "descricao": transacao.descricao,
+                "categoria": transacao.categoria,
+                "subcategoria": transacao.subcategoria,
+                "forma_pagamento": transacao.forma_pagamento,
+                "e_parcelado": e_parcelado,
+                "parcelas": n,
+                "total_parcelas": total_p,
+                "natureza_transacao": transacao.natureza_transacao,
+                "data_transacao": dt,
+                "data_atualizacao": now
+            }
+            docs.append(doc)
 
-        created = await transacoes_col.find_one({'_id': result.inserted_id})
-        if not created:
-            api_logger.error('Transação não encontrada após criação')
-            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                'Transação não encontrada após criação')
-
-        created['id'] = str(created.pop('_id'))
-        api_logger.success('Transação criada com sucesso', transaction_id=created['id'])
-        return TransacaoResponse(**created)
+        # 3) Inserir e retornar
+        if len(docs) == 1:
+            result = await transacoes_col.insert_one(docs[0])
+            api_logger.debug('Resultado insert_one',
+                             acknowledged=result.acknowledged,
+                             inserted_id=str(result.inserted_id))
+            if not result.acknowledged:
+                api_logger.error('Falha ao inserir transação')
+                raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Falha ao inserir transação')
+            created = await transacoes_col.find_one({'_id': result.inserted_id})
+            if not created:
+                api_logger.error('Transação não encontrada após criação')
+                raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Transação não encontrada após criação')
+            created['id'] = str(created.pop('_id'))
+            api_logger.success('Transação criada com sucesso', transaction_id=created['id'])
+            return TransacaoResponse(**created)
+        else:
+            result = await transacoes_col.insert_many(docs)
+            api_logger.debug('Resultado insert_many',
+                             acknowledged=result.acknowledged,
+                             inserted_ids=[str(i) for i in result.inserted_ids])
+            if not result.acknowledged:
+                api_logger.error('Falha ao inserir parcelas')
+                raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Falha ao inserir parcelas')
+            created_docs = await transacoes_col.find({'_id': {'$in': result.inserted_ids}}).to_list(None)
+            responses: List[TransacaoResponse] = []
+            for c in created_docs:
+                c['id'] = str(c.pop('_id'))
+                responses.append(TransacaoResponse(**c))
+            api_logger.success('Parcelas criadas com sucesso', count=len(responses))
+            return responses
 
     except HTTPException:
         api_logger.warning('HTTPException durante criação de transação')

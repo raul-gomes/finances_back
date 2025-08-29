@@ -13,3 +13,7 @@ wheels/
 .env
 mongo-data/*
 mongo-keyfile
+
+
+# logs
+logs/*
