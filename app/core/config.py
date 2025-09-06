@@ -9,3 +9,4 @@ class Config:
     logging.info(f"DEBUG: MongoDB URL → {MONGODB_URL}")
     DATABASE_NAME = os.getenv('DATABASE_NAME')
     logging.info(f"DEBUG: MongoDB URL → {DATABASE_NAME}")
+    DATABASE_URL = os.getenv('DATABASE_URL')

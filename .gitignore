@@ -13,6 +13,7 @@ wheels/
 .env
 mongo-data/*
 mongo-keyfile
+financas.db
 
 
 # logs

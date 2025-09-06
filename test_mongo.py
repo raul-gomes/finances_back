@@ -1,14 +1,13 @@
-import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime, timedelta
+from pymongo import MongoClient
 
-async def test_mongo_connection():
-    client = AsyncIOMotorClient("mongodb://admin:password@localhost:27017/finances-db?authSource=admin")
-    print(client.address)
-    try:
-        await client.admin.command('ping')
-        print("Conectado ao MongoDB com sucesso!")
-    except Exception as e:
-        print(f"Erro ao conectar: {e}")
+client = MongoClient('mongodb://admin:password@localhost:27017/finances-db?authSource=admin&replicaSet=rs0')
+db = client['finances-db']
+collection = db.categorias
 
-if __name__ == "__main__":
-    asyncio.run(test_mongo_connection())
+# calcula data-limite: 30 dias atrás
+cutoff = datetime.utcnow() - timedelta(days=30)
+
+# remove documentos com updated_at anterior ao cutoff
+result = collection.delete_many({ })
+print(f"Documentos removidos: {result.deleted_count}")
