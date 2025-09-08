@@ -1,12 +1,14 @@
 # app/db/repositories/subcategoria.py
 
 from typing import List, Optional
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert, select, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_session
 from app.db.models.categoria import SubcategoriaORM
+from app.logger import log_database_operation
 from app.schemas.categorias import Subcategoria, SubcategoriaUpdate
 from app.schemas.subcategoria import SubcategoriaCreate
 
@@ -15,6 +17,31 @@ class SubcategoriaRepository:
     def __init__(self, db: AsyncSession = Depends(get_session)):
         self.db = db
         self.model = SubcategoriaORM
+
+    async def get_by_id(self, id: int) -> Optional[SubcategoriaORM]:
+        return await self.db.get(self.model, id)
+
+    async def get_by_nome_and_categoria(self, nome: str, categoria_id: int) -> Optional[SubcategoriaORM]:
+        result = await self.db.execute(
+            select(self.model).where(
+                self.model.subcategoria_nome == nome,
+                self.model.categoria_id == categoria_id
+            )
+        )
+        return result.scalars().first()
+    
+    async def create(self, categoria_id: int, obj_in: SubcategoriaCreate) -> SubcategoriaORM:
+        log = log_database_operation(operation="create", collection="subcategorias", payload=obj_in.dict())
+        try:
+            inst = self.model(subcategoria_nome=obj_in.subcategoria_nome, categoria_id=categoria_id)
+            self.db.add(inst)
+            await self.db.commit()
+            await self.db.refresh(inst)
+            log.info(f"Subcategoria {inst.id} criada para categoria {categoria_id}")
+            return inst
+        except IntegrityError:
+            await self.db.rollback()
+            raise HTTPException(status_code=400, detail="Erro ao criar subcategoria")
 
     async def create_many(self, categoria_id: int, subs: List[SubcategoriaCreate]):
         stmt = insert(self.model).values([

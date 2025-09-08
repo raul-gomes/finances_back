@@ -1,5 +1,5 @@
 from app.db.base import Base
-import app.db.models
+import app.db.models.transacao
 from app.core.database import sync_engine
 
 def main():

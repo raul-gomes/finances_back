@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 
 # from .core.database import connect_to_mongo, close_mongo_connection
 from .logger import logger, log_with_context
 
-#from .routes.transacoes_routes import router as trasacoes_router
+from .routes.transacoes_routes import router as trasacoes_router
 from .routes.categorias_routes import router as categorias_router
 # from .routes.dashboard_routes import router as dashboard_router
 # from .routes.limits_routes import router as limits_router
@@ -44,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#app.include_router(trasacoes_router)
+app.include_router(trasacoes_router)
 app.include_router(categorias_router)
 # app.include_router(dashboard_router)
 # app.include_router(limits_router)

@@ -1,4 +1,5 @@
 # app/logger.py
+import logging
 import sys
 from pathlib import Path
 from loguru import logger
@@ -81,6 +82,7 @@ def setup_logger(app_name: str = "financas_backend"):
     )
     
     logger.info(f"Logger configurado para {app_name}")
+
     return logger
 
 # Configura o logger na importação
