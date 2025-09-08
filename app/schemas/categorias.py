@@ -1,20 +1,18 @@
+# app/schemas/categoria.py
+
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 
-class Subcategoria(BaseModel):
-    subcategoria_nome: str = Field(..., description='Nome da subcategoria')
+from app.schemas.subcategoria import Subcategoria, SubcategoriaCreate, SubcategoriaUpdate
 
-class SubcategoriaUpdate(Subcategoria):
-    id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
-
-class CategoriaCreate(BaseModel):
+class CategoriaBase(BaseModel):
     categoria_nome: str = Field(..., description='Nome da categoria')
-    natureza: Literal['pj', 'pf', 'all'] = Field(..., description='Natureza da categoria: "pf" para pessoa física ou "pj" para pessoa jurídica')
+    natureza: Literal['pj', 'pf', 'all'] = Field(..., description='Natureza da categoria')
     limite: float = Field(..., ge=0, description='Limite associado à categoria')
-    subcategorias: List[Subcategoria] = Field(default_factory=list, description='Lista de subcategorias')
+
+class CategoriaCreate(CategoriaBase):
+    subcategorias: List[SubcategoriaCreate] = Field(default_factory=list, description='Lista de subcategorias')
 
     class Config:
         json_schema_extra = {
@@ -30,23 +28,18 @@ class CategoriaCreate(BaseModel):
             }
         }
 
-class Categoria(BaseModel):
-    id: str = Field(..., description='ID da categoria')
-    categoria_nome: str = Field(..., description='Nome da categoria')
-    natureza: Literal['pf', 'pj', 'all'] = Field(
-        ...,
-        description='Natureza da categoria: "pf" para pessoa física ou "pj" para pessoa jurídica'
-    )
-    limite: float = Field(..., ge=0, description='Limite associado à categoria')
+class Categoria(CategoriaBase):
+    id: int = Field(..., description='ID da categoria')  # Mudança: int em vez de str
     subcategorias: List[Subcategoria] = Field(..., description='Lista de subcategorias')
 
-
+    class Config:
+        orm_mode = True
 
 class CategoriaUpdate(BaseModel):
-    categoria_nome: Optional[str]
-    natureza: Optional[Literal['pj','pf','all']]
-    limite: Optional[float]
-    subcategorias: List[SubcategoriaUpdate] = []
+    categoria_nome: Optional[str] = None
+    natureza: Optional[Literal['pj','pf']] = None
+    limite: Optional[float] = None
+    subcategorias: Optional[List[SubcategoriaUpdate]] = Field(default=None)
 
     class Config:
         orm_mode = True

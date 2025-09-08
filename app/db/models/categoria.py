@@ -14,7 +14,7 @@ class CategoriaORM(Base):
         'SubcategoriaORM',
         back_populates='categoria',
         cascade='all, delete-orphan',
-        lazy='selectin'
+        lazy='joined'
     )
 
 
