@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 
 from app.db.repositories.dashboard import DashboardRepository
-from app.schemas.dashboard import EntradasPorCategoriaResponse, ExtratoResponse, GastosPorCategoriaResponse, OpcoesCategoriaResponse, RendimentoPeriodoResponse
+from app.schemas.dashboard import EntradasPorCategoriaResponse, ExtratoResponse, GastosPorCategoriaResponse, OpcoesCategoriaResponse, RendimentoPeriodoResponse, TipoTrans
 
 from app.logger import log_api_request
 
@@ -78,28 +78,31 @@ async def rendimento_periodo(
 @router.get(
     "/gastos-por-categoria",
     response_model=GastosPorCategoriaResponse,
-    summary="Gastos por subcategoria",
-    description="Retorna gastos por categoria/subcategoria incluindo limite"
+    summary="Gastos por categoria/subcategoria",
+    description="Retorna valores agregados por categoria e subcategoria para 'entrada' ou 'saida'",
+    status_code=status.HTTP_200_OK,
 )
 async def gastos_por_categoria(
     data_inicio: str = Query(..., description="Data inicial DD/MM/YYYY"),
     data_final: str = Query(..., description="Data final DD/MM/YYYY"),
     natureza: str = Query(..., description="Natureza jurídica: pf ou pj"),
+    tipo: Literal["entrada", "saida"] = Query(..., description="Tipo de transação"),
     db: AsyncSession = Depends(get_session),
 ):
     dt_i = datetime.strptime(data_inicio, "%d/%m/%Y")
     dt_f = datetime.strptime(data_final, "%d/%m/%Y")
     dt_f = datetime.combine(dt_f.date(), datetime.max.time())
 
-    dashboard_repo = DashboardRepository(db)
-    categorias = await dashboard_repo.gastos_por_categoria(dt_i, dt_f, natureza)
-    
+    repo = DashboardRepository(db)
+    categorias = await repo.gastos_por_categoria(
+        dt_i, dt_f, natureza, TipoTrans(tipo)
+    )
+
     return GastosPorCategoriaResponse(
         data_inicial=data_inicio,
         data_final=data_final,
-        categorias=categorias
+        categorias=categorias,
     )
-
 @router.get(
     '/opcoes-categorias',
     response_model=OpcoesCategoriaResponse,

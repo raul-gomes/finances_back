@@ -7,27 +7,7 @@ from .logger import logger, log_with_context
 from .routes.transacoes_routes import router as trasacoes_router
 from .routes.categorias_routes import router as categorias_router
 from .routes.dashboard_routes import router as dashboard_router
-# from .routes.limits_routes import router as limits_router
-
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     '''Gerencia o ciclo de vida da aplicação'''
-#     startup_logger = log_with_context(event='startup')
-#     startup_logger.info('Iniciando aplicação FastAPI')
-#     try:
-#         await connect_to_mongo()
-#         startup_logger.success('Aplicação iniciada com sucesso')
-#         yield
-#     except Exception as e:
-#         startup_logger.error(f'Erro no startup {e}')
-#     finally:
-#         shutdown_logger = log_with_context(event='shutdown')
-#         shutdown_logger.info('Encerrando a aplicação')
-#         await close_mongo_connection()
-#         shutdown_logger.info('Aplicação encerrada')
-
-
+from .routes.limits_routes import router as limits_router
 
 app = FastAPI(
     title="API Financeira",
@@ -46,7 +26,7 @@ app.add_middleware(
 app.include_router(trasacoes_router)
 app.include_router(categorias_router)
 app.include_router(dashboard_router)
-# app.include_router(limits_router)
+app.include_router(limits_router)
 
 @app.get('/', tags=['Root'])
 async def root():

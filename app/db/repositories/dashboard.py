@@ -8,8 +8,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.db.models.transacao import TransacaoORM
 from app.db.models.categoria import CategoriaORM
-from app.schemas.dashboard import CategoriaOpcao, EntradasPorCategoriaResponse, ExtratoResponse, OpcoesCategoriaResponse, RendimentoPeriodoResponse, SubcategoriaOpcao
-from app.schemas.transacao import TransacaoResponse
+from app.schemas.dashboard import CategoriaOpcao, EntradasPorCategoriaResponse, ExtratoResponse, OpcoesCategoriaResponse, RendimentoPeriodoResponse, SubcategoriaOpcao, TipoTrans, TransacaoExtrato
+from app.schemas.transacao import NaturezaTransacao, TransacaoResponse
 
 class DashboardRepository:
     def __init__(self, db: AsyncSession):
@@ -20,58 +20,55 @@ class DashboardRepository:
         data_inicio: datetime,
         data_final: datetime,
         natureza: str,
+        tipo: TipoTrans,
     ) -> List[Dict[str, Any]]:
-
-        # Busca todas transações do período, filtrando por natureza e saida, carregando categoria/subcategoria
         stmt = (
             select(TransacaoORM)
             .where(TransacaoORM.data_transacao >= data_inicio)
             .where(TransacaoORM.data_transacao <= data_final)
-            .where(TransacaoORM.natureza == natureza)
-            .where(TransacaoORM.tipo == "saida")
+            .where(TransacaoORM.natureza == NaturezaTransacao(natureza))
+            .where(TransacaoORM.tipo == tipo.value)
             .options(
                 selectinload(TransacaoORM.categoria),
-                selectinload(TransacaoORM.subcategoria)
+                selectinload(TransacaoORM.subcategoria),
             )
         )
 
         result = await self.db.execute(stmt)
         transacoes = result.unique().scalars().all()
 
-        # Agregação dos dados
         gastos: Dict[int, Dict[str, Any]] = {}
         for t in transacoes:
-            # Protege contra transações órfãs (sem categoria ou subcategoria)
             if not t.categoria or not t.subcategoria:
                 continue
-            cat_id = t.categoria.id
+            cid = t.categoria.id
             cat_nome = t.categoria.categoria_nome
             sub_nome = t.subcategoria.subcategoria_nome
             limite = t.categoria.limite
 
-            categoria_item = gastos.setdefault(cat_id, {
-                "nome": cat_nome,
-                "total": 0.0,
-                "limite": limite,
-                "subcategorias": {}
-            })
-            categoria_item["total"] += t.valor
-            categoria_item["subcategorias"].setdefault(sub_nome, 0.0)
-            categoria_item["subcategorias"][sub_nome] += t.valor
+            cat = gastos.setdefault(
+                cid,
+                {"nome": cat_nome, "total": 0.0, "limite": limite, "subcategorias": {}},
+            )
+            cat["total"] += t.valor
+            cat["subcategorias"].setdefault(sub_nome, 0.0)
+            cat["subcategorias"][sub_nome] += t.valor
 
-        # Monta lista final filtrando apenas categorias com total > 0
         resultado = []
-        for cat_id, data in gastos.items():
+        for data in gastos.values():
             if data["total"] > 0:
-                resultado.append({
-                    "nome": data["nome"],
-                    "total": round(data["total"], 2),
-                    "limite": data["limite"],
-                    "subcategorias": [
-                        {"nome": sn, "valor": f"{round(v,2):.2f}"}
-                        for sn, v in data["subcategorias"].items() if v > 0
-                    ]
-                })
+                resultado.append(
+                    {
+                        "nome": data["nome"],
+                        "total": round(data["total"], 2),
+                        "limite": data["limite"],
+                        "subcategorias": [
+                            {"nome": sn, "valor": f"{round(v,2):.2f}"}
+                            for sn, v in data["subcategorias"].items()
+                        ],
+                    }
+                )
+
         return resultado
 
     async def rendimento_por_periodo(
@@ -109,15 +106,13 @@ class DashboardRepository:
         return RendimentoPeriodoResponse(limite=limite, meses=meses_data)
     
     async def extrato_financeiro(
-        self, 
-        data_inicio: datetime, 
-        data_final: datetime, 
+        self,
+        data_inicio: datetime,
+        data_final: datetime,
         natureza: str,
         data_inicio_str: str,
         data_final_str: str
     ) -> ExtratoResponse:
-        
-        # Buscar transações do período com relacionamentos
         stmt = (
             select(TransacaoORM)
             .where(TransacaoORM.data_transacao >= data_inicio)
@@ -129,54 +124,69 @@ class DashboardRepository:
             )
             .order_by(TransacaoORM.data_transacao.desc())
         )
-        
         result = await self.db.execute(stmt)
         transacoes = result.unique().scalars().all()
-
-        # Calcular totais
+    
         entradas = sum(t.valor for t in transacoes if t.tipo == "entrada")
         saidas = sum(t.valor for t in transacoes if t.tipo == "saida")
-
-        # Converter para schema de resposta
-        txs = [TransacaoResponse.model_validate(t) for t in transacoes]
-
-        meta_mensal = 4000.0  # valor fixo ou pode vir de configuração
-
+    
+        txs = [
+            TransacaoExtrato(
+                id=t.id,
+                valor=t.valor,
+                descricao=t.descricao,
+                parcela=t.parcela,
+                total_parcelas=t.total_parcelas,
+                data_transacao=t.data_transacao,
+                tipo=t.tipo,
+                natureza_transacao=t.natureza,
+                forma_pagamento=t.forma_pagamento,
+                categoria=t.categoria.categoria_nome if t.categoria else "",
+                subcategoria=t.subcategoria.subcategoria_nome if t.subcategoria else "",
+                data_criacao=t.data_criacao,
+                data_atualizacao=t.data_atualizacao,
+            )
+            for t in transacoes
+        ]
+    
+        meta_mensal = 4000.0
+    
         return ExtratoResponse(
             entradas=entradas,
             saidas=saidas,
             data_inicial=data_inicio_str,
             data_final=data_final_str,
             meta_mensal=meta_mensal,
-            total_investido=entradas,  # conforme comentário no schema
+            total_investido=entradas,
             transacoes=txs
         )
 
     async def opcoes_categorias(self, natureza: str = 'all') -> OpcoesCategoriaResponse:
-        
         stmt = select(CategoriaORM).options(
             selectinload(CategoriaORM.subcategorias)
         )
-        
         if natureza != 'all':
-            stmt = stmt.where(CategoriaORM.natureza == natureza)
-        
+            stmt = stmt.where(CategoriaORM.natureza == NaturezaTransacao(natureza))
         result = await self.db.execute(stmt)
         categorias = result.unique().scalars().all()
-        
+
         opcoes: List[CategoriaOpcao] = []
         for categoria in categorias:
-            subcategorias_lista = [
-                SubcategoriaOpcao(nome=sub.subcategoria_nome) 
+            subs = [
+                SubcategoriaOpcao(
+                    id=sub.id,
+                    nome=sub.subcategoria_nome
+                )
                 for sub in categoria.subcategorias
             ]
-            
-            categoria_opcao = CategoriaOpcao(
-                categoria=categoria.categoria_nome,
-                subcategorias=subcategorias_lista
+            opcoes.append(
+                CategoriaOpcao(
+                    id=categoria.id,
+                    categoria=categoria.categoria_nome,
+                    subcategorias=subs
+                )
             )
-            opcoes.append(categoria_opcao)
-        
+
         return OpcoesCategoriaResponse(opcoes=opcoes)
 
     async def entradas_por_categoria(
