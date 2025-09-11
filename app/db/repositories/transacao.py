@@ -13,12 +13,13 @@ from app.core.database import get_session
 from app.db.models.transacao import TransacaoORM
 from app.db.repositories.categoria import CategoriaRepository
 from app.db.repositories.subcategoria import SubcategoriaRepository
-from app.schemas.transacao import TransacaoCreate, TransacaoUpdate
+from app.schemas.transacao import TipoPagamento, TipoTransacao, TransacaoCreate, TransacaoUpdate
 from app.schemas.categorias import CategoriaCreate
 from app.schemas.subcategoria import SubcategoriaCreate
 from app.logger import log_database_operation
 
 from uuid import uuid4
+from dateutil.relativedelta import relativedelta
 
 
 class TransacaoRepository:
@@ -26,6 +27,92 @@ class TransacaoRepository:
         self.db = db
         self.categoria_repo = CategoriaRepository(db)
         self.subcategoria_repo = SubcategoriaRepository(db)
+
+    def _calcular_valor_parcela(self, valor_total: float, total_parcelas: int) -> float:
+        return round(valor_total / total_parcelas, 2)
+    
+    def _gerar_datas_parcelas(self, data_base: datetime, total_parcelas: int) -> List[datetime]:
+        dates = []
+
+        for i in range(total_parcelas):
+            if i == 0:
+                dates.append(data_base)
+            else:
+                proximo_mês = data_base + relativedelta(months=i)
+                dates.append(proximo_mês.replace(day=1))
+        
+        return dates
+    
+    def _create_transacaoes(
+            self,
+            obj_in,
+            group_id: str,
+            parcela: int,
+            total_parcelas: int,
+            valor: float,
+            data_transacao: datetime,
+            categoria_id=int,
+            sub_id=int
+    ) -> TransacaoORM:
+        return TransacaoORM(
+            group_id=group_id,
+            tipo=obj_in.tipo,
+            valor=valor,
+            descricao=f'{obj_in.descricao} - parcela {parcela}/{total_parcelas}',
+            data_transacao=data_transacao,
+            forma_pagamento=obj_in.forma_pagamento,
+            natureza=obj_in.natureza,
+            parcela=parcela,  
+            total_parcelas=total_parcelas,
+            categoria_id=categoria_id,
+            subcategoria_id=sub_id,
+
+        )
+    
+    def _ajustar_ultima_parcela(self, transacoes: List, valor: float):
+        if not transacoes:
+            return
+        
+        total_parcelas = sum(t.valor for t in transacoes)
+        diferenca = round(valor - total_parcelas, 2)
+
+        if diferenca != 0:
+            transacoes[0].valor = round(transacoes[0].valor + diferenca, 2)
+    
+    async def _create_transacaoes_parceladas(self, 
+                                      obj_in, 
+                                      group_id: str, 
+                                      categoria_id: int,
+                                      sub_id: int
+                                      ):
+        total_parcelas = obj_in.total_parcelas
+        valor = self._calcular_valor_parcela(obj_in.valor, total_parcelas)
+        datas_parcelas = self._gerar_datas_parcelas(obj_in.data_transacao, total_parcelas)
+
+        created_transactions = []
+
+        for i in range(total_parcelas):
+            transacao = self._create_transacaoes(
+                obj_in=obj_in,
+                group_id=group_id,
+                parcela=i + 1,
+                total_parcelas=total_parcelas,
+                valor=valor,
+                data_transacao=datas_parcelas[i],
+                categoria_id=categoria_id,
+                sub_id=sub_id
+            )
+            self.db.add(transacao)
+            created_transactions.append(transacao)
+
+        self._ajustar_ultima_parcela(created_transactions, obj_in.valor)
+
+        await self.db.commit()
+
+        for transacao in created_transactions:
+            await self.db.refresh(transacao)
+
+        return created_transactions
 
     async def create(self, obj_in: TransacaoCreate) -> TransacaoORM:
         log = log_database_operation(operation="create", collection="transacoes", payload=obj_in.model_dump())
@@ -65,19 +152,26 @@ class TransacaoRepository:
 
         # 3) Cria a transação usando os IDs resolvidos
         try:
-            inst = TransacaoORM(
-                valor=obj_in.valor,
-                descricao=obj_in.descricao,
-                parcela=obj_in.parcelas,
-                total_parcelas=obj_in.total_parcelas,
-                data_transacao=obj_in.data_transacao,
-                tipo=obj_in.tipo.value,
-                natureza=obj_in.natureza.value,
-                forma_pagamento=obj_in.forma_pagamento.value,
-                categoria_id=categoria.id,
-                subcategoria_id=sub.id,
-                group_id=group_id
-            )
+            if (obj_in.forma_pagamento == TipoPagamento.CREDITO and obj_in.total_parcelas > 1):
+                transacoes = await self._create_transacaoes_parceladas(obj_in, group_id, categoria.id, sub.id)
+                log.info(f"Transação {group_id} criada, com {len(transacoes)} parcelas")
+                return transacoes[0]
+            else: 
+                inst = TransacaoORM(
+                    valor=obj_in.valor,
+                    descricao=obj_in.descricao,
+                    parcela=obj_in.parcelas,
+                    total_parcelas=obj_in.total_parcelas,
+                    data_transacao=obj_in.data_transacao,
+                    tipo=obj_in.tipo.value,
+                    natureza=obj_in.natureza.value,
+                    forma_pagamento=obj_in.forma_pagamento.value,
+                    categoria_id=categoria.id,
+                    subcategoria_id=sub.id,
+                    group_id=group_id
+                )
+
+
             self.db.add(inst)
             await self.db.commit()
             await self.db.refresh(inst)
