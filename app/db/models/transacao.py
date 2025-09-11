@@ -1,11 +1,14 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+from uuid import uuid4
 
 class TransacaoORM(Base):
     __tablename__ = "transacoes"
 
     id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(UUID(as_uuid=True), nullable=False, default=uuid4, index=True)
     valor = Column(Float, nullable=False)
     descricao = Column(String, nullable=False)
     parcela = Column(Integer)

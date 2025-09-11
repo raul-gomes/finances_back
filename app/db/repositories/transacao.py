@@ -18,6 +18,8 @@ from app.schemas.categorias import CategoriaCreate
 from app.schemas.subcategoria import SubcategoriaCreate
 from app.logger import log_database_operation
 
+from uuid import uuid4
+
 
 class TransacaoRepository:
     def __init__(self, db: AsyncSession = Depends(get_session)):
@@ -26,7 +28,8 @@ class TransacaoRepository:
         self.subcategoria_repo = SubcategoriaRepository(db)
 
     async def create(self, obj_in: TransacaoCreate) -> TransacaoORM:
-        log = log_database_operation(operation="create", collection="transacoes", payload=obj_in.dict())
+        log = log_database_operation(operation="create", collection="transacoes", payload=obj_in.model_dump())
+        group_id = uuid4()
 
         # 1) Categoria: se id não informado, busca ou cria por nome
         if obj_in.categoria_id is not None:
@@ -72,7 +75,8 @@ class TransacaoRepository:
                 natureza=obj_in.natureza.value,
                 forma_pagamento=obj_in.forma_pagamento.value,
                 categoria_id=categoria.id,
-                subcategoria_id=sub.id
+                subcategoria_id=sub.id,
+                group_id=group_id
             )
             self.db.add(inst)
             await self.db.commit()

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ValidationInfo, model_validator, field_va
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 
 class TipoTransacao(str, Enum):
@@ -65,6 +66,7 @@ class TransacaoCreate(TransacaoBase):
 
 class TransacaoResponse(TransacaoBase):
     id: int
+    group_id: UUID
     tipo: TipoTransacao
     natureza: NaturezaTransacao
     forma_pagamento: TipoPagamento
