@@ -101,9 +101,15 @@ class DashboardRepository:
                 "saida": round(saidas, 2),
             }
 
-        limite = 4000
+        mensal_cat = await self.db.execute(
+            select(CategoriaORM)
+            .where(CategoriaORM.id == 1)
+        )
 
-        return RendimentoPeriodoResponse(limite=limite, meses=meses_data)
+        mensal_obj = mensal_cat.scalars().first()
+        limite_mensal = mensal_obj.limite if mensal_obj else 0.0
+
+        return RendimentoPeriodoResponse(limite=limite_mensal, meses=meses_data)
     
     async def extrato_financeiro(
         self,
@@ -149,14 +155,20 @@ class DashboardRepository:
             for t in transacoes
         ]
     
-        meta_mensal = 4000.0
+        mensal_cat = await self.db.execute(
+            select(CategoriaORM)
+            .where(CategoriaORM.id == 1)
+        )
+
+        mensal_obj = mensal_cat.scalars().first()
+        limite_mensal = mensal_obj.limite if mensal_obj else 0.0
     
         return ExtratoResponse(
             entradas=entradas,
             saidas=saidas,
             data_inicial=data_inicio_str,
             data_final=data_final_str,
-            meta_mensal=meta_mensal,
+            meta_mensal=limite_mensal,
             total_investido=entradas,
             transacoes=txs
         )

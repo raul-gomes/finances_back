@@ -17,7 +17,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=["http://localhost:8080"],  # Em produção, especificar domínios
+    allow_origins=["http://localhost:8080", "http://172.25.208.1:8080", "http://172.17.160.1:8080", "http://192.168.15.2:8080/"],  # Em produção, especificar domínios
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
